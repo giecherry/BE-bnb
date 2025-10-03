@@ -1,4 +1,4 @@
-export interface Booking {
+interface NewBooking {
     id: string;
     createdAt: string;
     checkInDate: string;
@@ -6,4 +6,7 @@ export interface Booking {
     totalPrice: number;
     userId: string;
     propertyId: string;
+}
+interface Booking extends NewBooking {
+    id: string;
 }
