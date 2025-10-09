@@ -36,12 +36,27 @@ function createSupabaseForRequest(c: Context) {
 }
 
 export async function withSupabase(c: Context, next: Next) {
+    let sb = c.get("supabase")
     if (!c.get("supabase")) {
-        const sb = createSupabaseForRequest(c)
+        sb = createSupabaseForRequest(c)
         c.set("supabase", sb)
+    }
+    const { data: { user }, error } = await sb.auth.getUser()
+    c.set("user", error ? null : user)
 
-        const { data: { user }, error } = await sb.auth.getUser()
-        c.set("user", error ? null : user)
+    // If Error is JWT expired, attempt to refresh the session
+    if (error && error.code === "session_expired") {
+        console.log("session has expired attempting refreshing the session")
+        const { data: refreshData, error: refreshError } =
+            await sb.auth.refreshSession();
+
+        if (!refreshError && refreshData.user) {
+            c.set("user", refreshData.user);
+        } else {
+            c.set("user", null);
+        }
+    } else {
+        c.set("user", error ? null : user);
     }
     return next()
 }
