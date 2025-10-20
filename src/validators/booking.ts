@@ -4,7 +4,8 @@ import { zValidator } from '@hono/zod-validator';
 const bookingSchema = z.object({
     checkInDate: z.string().min(1, "Check-in date is required"),
     checkOutDate: z.string().min(1, "Check-out date is required"),
-    propertyId: z.string().min(1, "Property ID is required")
+    propertyId: z.string().min(1, "Property ID is required"),
+    totalPrice: z.number().min(0, "Total price must be a positive number")
 }).refine((data) => {
     const checkIn = new Date(data.checkInDate);
     const checkOut = new Date(data.checkOutDate);

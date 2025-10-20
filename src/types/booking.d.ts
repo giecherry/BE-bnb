@@ -10,3 +10,10 @@ interface NewBooking {
 interface Booking extends NewBooking {
     id: string;
 }
+
+type BookingListQuery = {
+    limit?: number;
+    offset?: number;
+    q?: string;
+    sort_by?: 'createdAt' | 'totalPrice';
+};
