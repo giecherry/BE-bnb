@@ -18,7 +18,7 @@ export const getUserBookings = async (sb: SupabaseClient, userId: string) => {
     return bookings.data || [];
 };
 
-export const createBooking = async (sb: SupabaseClient, booking: NewBooking) => {
+export const createBooking = async (sb: SupabaseClient, booking: Omit<NewBooking, "id" | "createdAt">) => {
     const query = sb.from("bookings").insert(booking).select().single();
     const response: PostgrestSingleResponse<Booking> = await query;
     return response;
@@ -47,4 +47,4 @@ export const deleteBooking = async (sb: SupabaseClient, id: string) => {
         .single();
     const response: PostgrestSingleResponse<Booking> = await query;
     return response;
-};  
+};
