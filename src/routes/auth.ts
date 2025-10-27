@@ -43,6 +43,9 @@ authApp.post("/register", registerValidator, async (c) => {
     }
 
     const user = response.data.user;
+    const token = response.data.session?.access_token;
+
+    console.log("Token:", token);
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -60,7 +63,7 @@ authApp.post("/register", registerValidator, async (c) => {
         return c.json({ error: "Database error saving new user" }, 500);
     }
 
-    return c.json({ id: user.id, email: user.email, name: newUser.name, is_admin: newUser.is_admin }, 200);
+    return c.json({ id: user.id, email: user.email, name: newUser.name, is_admin: newUser.is_admin, token }, 200);
 });
 
 authApp.post("/refresh", async (c) => {
