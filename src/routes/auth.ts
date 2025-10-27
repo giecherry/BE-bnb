@@ -3,38 +3,64 @@ import { HTTPException } from "hono/http-exception";
 import { registerValidator } from "../validators/auth.js";
 import { requireAuth } from "../middleware/auth.js";
 import * as userDb from "../database/users.js";
+import bcrypt from "bcryptjs";
 
 export const authApp = new Hono();
 
 authApp.post("/login", async (c) => {
     const { email, password } = await c.req.json();
     const sb = c.get("supabase");
-    const { data, error } = await sb.auth.signInWithPassword({
-        email,
-        password,
-    });
 
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
     if (error) {
-        throw new HTTPException(400, {
-            res: c.json({ error: "Invalid credentials" }, 400),
-        });
+        return c.json({ error: "Invalid credentials" }, 400);
     }
 
-    return c.json(data.user, 200);
+    const authUser = data.user;
+
+    const user = await userDb.getUserById(sb, authUser.id);
+    if (!user) {
+        return c.json({ error: "User not found" }, 404);
+    }
+
+    return c.json({ ...authUser, ...user }, 200);
 });
 
 authApp.post("/register", registerValidator, async (c) => {
-    const { email, password } = await c.req.json();
+    const { email, password, name, is_admin } = await c.req.json();
     const sb = c.get("supabase");
-    const response = await sb.auth.signUp({ email, password });
-    if (response.error) {
-        throw new HTTPException(400, {
-            res: c.json({ error: response.error.message }, 400),
-        });
-    }
-    console.log("Session details:", response.data.session);
 
-    return c.json(response.data.user, 200);
+    const { data: existingAuthUser, error: authCheckError } = await sb.auth.admin.listUsers();
+    const isAlreadyRegistered = existingAuthUser?.users.some((u) => u.email === email);
+
+    if (isAlreadyRegistered) {
+        return c.json({ error: "User already registered" }, 400);
+    }
+
+    const response = await sb.auth.signUp({ email, password });
+    if (response.error || !response.data.user) {
+        return c.json({ error: response.error?.message || "Failed to create user" }, 400);
+    }
+
+    const user = response.data.user;
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = {
+        id: user.id,
+        email: user.email!,
+        name: name || "Default Name",
+        password: hashedPassword,
+        is_admin: is_admin || false,
+    };
+
+    const { error: insertError } = await userDb.createUser(sb, newUser);
+    if (insertError) {
+        console.error("Error inserting user into users table:", insertError.message);
+        return c.json({ error: "Database error saving new user" }, 500);
+    }
+
+    return c.json({ id: user.id, email: user.email, name: newUser.name, is_admin: newUser.is_admin }, 200);
 });
 
 authApp.post("/refresh", async (c) => {

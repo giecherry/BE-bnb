@@ -10,3 +10,4 @@ CREATE TABLE users (
 -- INDEXES
 CREATE INDEX idx_users_name ON users (name);
 CREATE INDEX idx_users_email ON users (email);
+

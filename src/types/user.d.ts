@@ -3,7 +3,7 @@ interface NewUser {
     name: string;
     email: string;
     password: string;
-    isAdmin: boolean;
+    is_admin: boolean;
 }
 
 interface User extends NewUser {
