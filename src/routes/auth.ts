@@ -4,26 +4,41 @@ import { registerValidator } from "../validators/auth.js";
 import { requireAuth } from "../middleware/auth.js";
 import * as userDb from "../database/users.js";
 import bcrypt from "bcryptjs";
+import { error } from "console";
 
 export const authApp = new Hono();
 
 authApp.post("/login", async (c) => {
-    const { email, password } = await c.req.json();
-    const sb = c.get("supabase");
+    try {
+        const { email, password } = await c.req.json();
+        const sb = c.get("supabase");
 
-    const { data, error } = await sb.auth.signInWithPassword({ email, password });
-    if (error) {
-        return c.json({ error: "Invalid credentials" }, 400);
+        const { data, error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) {
+            return c.json({ error: "Invalid credentials" }, 400);
+        }
+
+        const authUser = data.user;
+
+        const user = await userDb.getUserById(sb, authUser.id);
+        if (!user) {
+            return c.json({ error: "User not found" }, 404);
+        }
+
+        const response = {
+            id: authUser.id,
+            email: authUser.email,
+            name: user.name,
+            is_admin: user.is_admin,
+        };
+
+        return new Response(JSON.stringify(response, null, 2), {
+            headers: { "Content-Type": "application/json" },
+        });
+    } catch (err) {
+        console.error("Unexpected error:", err);
+        return c.json({ error: "Internal server error" }, 500);
     }
-
-    const authUser = data.user;
-
-    const user = await userDb.getUserById(sb, authUser.id);
-    if (!user) {
-        return c.json({ error: "User not found" }, 404);
-    }
-
-    return c.json({ ...authUser, ...user }, 200);
 });
 
 authApp.post("/register", registerValidator, async (c) => {
@@ -44,8 +59,6 @@ authApp.post("/register", registerValidator, async (c) => {
 
     const user = response.data.user;
     const token = response.data.session?.access_token;
-
-    console.log("Token:", token);
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
