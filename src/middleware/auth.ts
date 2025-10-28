@@ -76,3 +76,25 @@ export async function requireAuth(c: Context, next: Next) {
   }
   return next();
 }
+
+
+export async function requireAdmin(c: Context, next: Next) {
+  await withSupabase(c, async () => {});
+  const user = c.get("user");
+  if (!user) {
+    throw new HTTPException(401, { message: "Unauthorized" });
+  }
+
+  const sb = c.get("supabase")!;
+  const { data: profile, error } = await sb
+    .from("profiles")
+    .select("isAdmin")
+    .eq("id", user.id)
+    .single();
+
+  if (error || !profile?.isAdmin) {
+    throw new HTTPException(403, { message: "Unauthorized access" });
+  }
+
+  return next();
+}

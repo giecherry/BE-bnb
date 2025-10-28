@@ -18,5 +18,6 @@ CREATE INDEX idx_bookings_property_id ON bookings (property_id);
 
 ALTER TABLE bookings
 ADD CONSTRAINT check_dates CHECK (check_in_date < check_out_date);
+
 ALTER TABLE bookings
-ADD CONSTRAINT unique_booking UNIQUE (user_id, property_id, check_in_date, check_out_date);
+ADD CONSTRAINT unique_booking UNIQUE (property_id, check_in_date, check_out_date);

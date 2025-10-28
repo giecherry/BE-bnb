@@ -4,7 +4,6 @@ import { registerValidator } from "../validators/auth.js";
 import { requireAuth } from "../middleware/auth.js";
 import * as userDb from "../database/users.js";
 import bcrypt from "bcryptjs";
-import { error } from "console";
 
 export const authApp = new Hono();
 
@@ -115,14 +114,6 @@ authApp.post("/logout", async (c) => {
 authApp.get("/me", requireAuth, async (c) => {
     const sb = c.get("supabase");
     const user = c.get("user")!;
-    const profile = await userDb.getProfile(sb, user.id);
-    return c.json(profile, 200);
-});
-
-authApp.patch("/me", requireAuth, async (c) => {
-    const sb = c.get("supabase");
-    const user = c.get("user")!;
-    const body: Partial<any> = await c.req.json();
-    const profile = await userDb.updateProfile(sb, user?.id, body);
+    const profile = await userDb.getUserById(sb, user.id);
     return c.json(profile, 200);
 });

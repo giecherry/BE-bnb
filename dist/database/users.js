@@ -38,20 +38,3 @@ export const deleteUser = async (sb, id) => {
     const response = await query;
     return response;
 };
-export async function getProfile(sb, uid) {
-    const { data, error } = await sb
-        .from("profiles")
-        .select("*")
-        .eq("user_id", uid)
-        .single();
-    return data;
-}
-export async function updateProfile(sb, uid, user) {
-    const { data, error } = await sb
-        .from("profiles")
-        .update(user)
-        .eq("user_id", uid)
-        .select()
-        .single();
-    return data;
-}

@@ -1,7 +1,23 @@
 import type { PostgrestSingleResponse, SupabaseClient } from "@supabase/supabase-js";
 
-export const getBookings = async (sb: SupabaseClient) => {
-    const query = sb.from("bookings").select("*");
+export const getBookings = async (
+    sb: SupabaseClient, options?: { q?: string; sort_by?: string; offset?: number; limit?: number }
+) => {
+    let query = sb.from("bookings").select("*");
+
+    if (options?.q) {
+        query = query.ilike("name", `%${options.q}%`);
+    }
+    if (options?.sort_by) {
+        query = query.order(options.sort_by, { ascending: true });
+    }
+    if (options?.offset) {
+        query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
+    }
+    if (options?.limit) {
+        query = query.limit(options.limit);
+    }
+
     const bookings: PostgrestSingleResponse<Booking[]> = await query;
     return bookings.data || [];
 };
@@ -18,10 +34,29 @@ export const getUserBookings = async (sb: SupabaseClient, userId: string) => {
     return bookings.data || [];
 };
 
-export const createBooking = async (sb: SupabaseClient, booking: Omit<NewBooking, "id" | "createdAt">) => {
-    const query = sb.from("bookings").insert(booking).select().single();
+export const createBooking = async (
+    sb: SupabaseClient,
+    booking: Omit<NewBooking, 'id' | 'createdAt'>
+): Promise<Booking> => {
+    const query = sb
+        .from('bookings')
+        .insert({
+            user_id: booking.userId, 
+            property_id: booking.propertyId,
+            check_in_date: booking.checkInDate,
+            check_out_date: booking.checkOutDate,
+            total_price: booking.totalPrice,
+        })
+        .select()
+        .single();
+
     const response: PostgrestSingleResponse<Booking> = await query;
-    return response;
+
+    if (response.error) {
+        throw new Error(response.error.message);
+    }
+
+    return response.data;
 };
 
 export const updateBooking = async (
