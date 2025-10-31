@@ -38,14 +38,24 @@ export const createBooking = async (
     sb: SupabaseClient,
     booking: Omit<NewBooking, 'id' | 'createdAt'>
 ): Promise<Booking> => {
+    const property = await sb.from('properties').select('price_per_night').eq('id', booking.propertyId).single();
+    if (!property.data) {
+        throw new Error('Property not found');
+    }
+    const pricePerNight = property.data.price_per_night;
+    const checkIn = new Date(booking.checkInDate);
+    const checkOut = new Date(booking.checkOutDate);
+    const stayLength = (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24);
+    const totalPrice = pricePerNight * stayLength;
+
     const query = sb
         .from('bookings')
         .insert({
-            user_id: booking.userId, 
+            user_id: booking.userId,
             property_id: booking.propertyId,
             check_in_date: booking.checkInDate,
             check_out_date: booking.checkOutDate,
-            total_price: booking.totalPrice,
+            total_price: totalPrice,
         })
         .select()
         .single();
