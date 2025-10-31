@@ -1,5 +1,17 @@
-export const getBookings = async (sb) => {
-    const query = sb.from("bookings").select("*");
+export const getBookings = async (sb, options) => {
+    let query = sb.from("bookings").select("*");
+    if (options?.q) {
+        query = query.ilike("name", `%${options.q}%`);
+    }
+    if (options?.sort_by) {
+        query = query.order(options.sort_by, { ascending: true });
+    }
+    if (options?.offset) {
+        query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
+    }
+    if (options?.limit) {
+        query = query.limit(options.limit);
+    }
     const bookings = await query;
     return bookings.data || [];
 };
@@ -14,9 +26,22 @@ export const getUserBookings = async (sb, userId) => {
     return bookings.data || [];
 };
 export const createBooking = async (sb, booking) => {
-    const query = sb.from("bookings").insert(booking).select().single();
+    const query = sb
+        .from('bookings')
+        .insert({
+        user_id: booking.userId,
+        property_id: booking.propertyId,
+        check_in_date: booking.checkInDate,
+        check_out_date: booking.checkOutDate,
+        total_price: booking.totalPrice,
+    })
+        .select()
+        .single();
     const response = await query;
-    return response;
+    if (response.error) {
+        throw new Error(response.error.message);
+    }
+    return response.data;
 };
 export const updateBooking = async (sb, id, booking) => {
     const query = sb

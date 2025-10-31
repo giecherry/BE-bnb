@@ -8,7 +8,7 @@ dotenv.config();
 
 const app = new Hono();
 
-app.get('/', (c) => c.text('Hello BnB Backend!'))
+app.get('/', (c) => c.text('Hello Hembnb Backend!'))
 app.use("*", optionalAuth)
 app.route("/auth", authApp)
 

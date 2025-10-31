@@ -1,7 +1,7 @@
 import * as z from "zod";
 import { zValidator } from "@hono/zod-validator";
 const registerSchema = z.object({
-    email: z.string().email({ message: "Valid email is required" }),
+    email: z.email("Valid email is required"),
     password: z.string()
         .min(6, "Password has to be 6 chars long at least")
         .regex(/[A-Za-z]/, "Password has to. contain a letter")

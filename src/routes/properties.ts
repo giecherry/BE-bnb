@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { requireAdmin } from '../middleware/auth.js';
+import { requireRole } from '../middleware/auth.js';
 import * as propertyDb from '../database/properties.js';
 import { handleError } from '../utils/general.js';
 import { SupabaseClient } from '@supabase/supabase-js';
@@ -38,7 +38,7 @@ propertiesApp.get('/:id', async (c) => {
     }
 });
 
-propertiesApp.post('/', requireAdmin, async (c) => {
+propertiesApp.post('/', requireRole(['host','admin']), async (c) => {
     const sb: SupabaseClient = c.get('supabase');
     const body: NewProperty = await c.req.json();
 
@@ -50,7 +50,7 @@ propertiesApp.post('/', requireAdmin, async (c) => {
     }
 });
 
-propertiesApp.patch('/:id', requireAdmin, async (c) => {
+propertiesApp.patch('/:id', requireRole(['host','admin']), async (c) => {
     const sb: SupabaseClient = c.get('supabase');
     const id: string = c.req.param('id');
     const body: Partial<NewProperty> = await c.req.json();
@@ -67,7 +67,7 @@ propertiesApp.patch('/:id', requireAdmin, async (c) => {
     }
 });
 
-propertiesApp.delete('/:id', requireAdmin, async (c) => {
+propertiesApp.delete('/:id', requireRole(['host','admin']), async (c) => {
     const sb: SupabaseClient = c.get('supabase');
     const id: string = c.req.param('id');
 

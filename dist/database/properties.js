@@ -1,5 +1,17 @@
-export const getProperties = async (sb) => {
-    const query = sb.from("properties").select("*");
+export const getProperties = async (sb, options) => {
+    let query = sb.from('properties').select('*');
+    if (options?.q) {
+        query = query.ilike('name', `%${options.q}%`);
+    }
+    if (options?.sort_by) {
+        query = query.order(options.sort_by, { ascending: true });
+    }
+    if (options?.offset !== undefined && options?.limit !== undefined) {
+        query = query.range(options.offset, options.offset + options.limit - 1);
+    }
+    if (options?.limit) {
+        query = query.limit(options.limit);
+    }
     const properties = await query;
     return properties.data || [];
 };

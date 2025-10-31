@@ -1,11 +1,11 @@
 import { Hono } from 'hono';
-import { requireAuth, optionalAuth, requireAdmin } from '../middleware/auth.js';
+import { requireAuth, optionalAuth, requireRole } from '../middleware/auth.js';
 import * as bookingDb from '../database/bookings.js';
 import { handleError } from '../utils/general.js';
 
 const bookingsApp = new Hono();
 
-bookingsApp.get('/', requireAdmin, async (c) => {
+bookingsApp.get('/', requireRole(['admin']), async (c) => {
     const sb = c.get('supabase');
     const { q, sort_by, offset, limit } = c.req.query();
 

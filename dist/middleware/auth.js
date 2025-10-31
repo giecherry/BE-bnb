@@ -55,3 +55,22 @@ export async function requireAuth(c, next) {
     }
     return next();
 }
+export const requireRole = (allowedRoles) => {
+    return async (c, next) => {
+        await withSupabase(c, async () => { });
+        const user = c.get("user");
+        if (!user) {
+            throw new HTTPException(401, { message: "Unauthorized" });
+        }
+        const sb = c.get("supabase");
+        const { data: userData, error } = await sb
+            .from("users")
+            .select("role")
+            .eq("id", user.id)
+            .single();
+        if (error || !allowedRoles.includes(userData?.role)) {
+            throw new HTTPException(403, { message: "Unauthorized access" });
+        }
+        return next();
+    };
+};

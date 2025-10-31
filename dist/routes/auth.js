@@ -3,31 +3,70 @@ import { HTTPException } from "hono/http-exception";
 import { registerValidator } from "../validators/auth.js";
 import { requireAuth } from "../middleware/auth.js";
 import * as userDb from "../database/users.js";
+import bcrypt from "bcryptjs";
 export const authApp = new Hono();
 authApp.post("/login", async (c) => {
-    const { email, password } = await c.req.json();
-    const sb = c.get("supabase");
-    const { data, error } = await sb.auth.signInWithPassword({
-        email,
-        password,
-    });
-    if (error) {
-        throw new HTTPException(400, {
-            res: c.json({ error: "Invalid credentials" }, 400),
+    try {
+        const { email, password } = await c.req.json();
+        const sb = c.get("supabase");
+        const { data, error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) {
+            return c.json({ error: "Invalid credentials" }, 400);
+        }
+        const authUser = data.user;
+        const user = await userDb.getUserById(sb, authUser.id);
+        if (!user) {
+            return c.json({ error: "User not found" }, 404);
+        }
+        const response = {
+            id: authUser.id,
+            email: authUser.email,
+            name: user.name,
+            role: user.role,
+        };
+        return new Response(JSON.stringify(response, null, 2), {
+            headers: { "Content-Type": "application/json" },
         });
     }
-    return c.json(data.user, 200);
+    catch (err) {
+        console.error("Unexpected error:", err);
+        return c.json({ error: "Internal server error" }, 500);
+    }
 });
 authApp.post("/register", registerValidator, async (c) => {
-    const { email, password } = await c.req.json();
+    const { email, password, name, role } = await c.req.json();
     const sb = c.get("supabase");
-    const response = await sb.auth.signUp({ email, password });
-    if (response.error) {
-        throw new HTTPException(400, {
-            res: c.json({ error: response.error.message }, 400),
-        });
+    const { data: existingAuthUser, error: authCheckError } = await sb.auth.admin.listUsers();
+    const isAlreadyRegistered = existingAuthUser?.users.some((u) => u.email === email);
+    if (isAlreadyRegistered) {
+        return c.json({ error: "User already registered" }, 400);
     }
-    return c.json(response.data.user, 200);
+    const response = await sb.auth.signUp({ email, password });
+    if (response.error || !response.data.user) {
+        return c.json({ error: response.error?.message || "Failed to create user" }, 400);
+    }
+    const authUser = response.data.user;
+    const token = response.data.session?.access_token;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = {
+        id: authUser.id,
+        email: authUser.email,
+        name: name || "Default Name",
+        password: hashedPassword,
+        role: role || "user",
+    };
+    const { error: insertError } = await userDb.createUser(sb, newUser);
+    if (insertError) {
+        console.error("Error inserting user into users table:", insertError.message);
+        return c.json({ error: "Database error saving new user" }, 500);
+    }
+    return c.json({
+        id: authUser.id,
+        email: authUser.email,
+        name: newUser.name,
+        role: newUser.role,
+        token,
+    }, 200);
 });
 authApp.post("/refresh", async (c) => {
     const sb = c.get("supabase");
@@ -55,13 +94,6 @@ authApp.post("/logout", async (c) => {
 authApp.get("/me", requireAuth, async (c) => {
     const sb = c.get("supabase");
     const user = c.get("user");
-    const profile = await userDb.getProfile(sb, user.id);
-    return c.json(profile, 200);
-});
-authApp.patch("/me", requireAuth, async (c) => {
-    const sb = c.get("supabase");
-    const user = c.get("user");
-    const body = await c.req.json();
-    const profile = await userDb.updateProfile(sb, user?.id, body);
+    const profile = await userDb.getUserById(sb, user.id);
     return c.json(profile, 200);
 });

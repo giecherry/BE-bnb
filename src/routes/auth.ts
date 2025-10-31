@@ -28,7 +28,7 @@ authApp.post("/login", async (c) => {
             id: authUser.id,
             email: authUser.email,
             name: user.name,
-            is_admin: user.is_admin,
+            role: user.role,
         };
 
         return new Response(JSON.stringify(response, null, 2), {
@@ -41,7 +41,7 @@ authApp.post("/login", async (c) => {
 });
 
 authApp.post("/register", registerValidator, async (c) => {
-    const { email, password, name, is_admin } = await c.req.json();
+    const { email, password, name, role } = await c.req.json(); 
     const sb = c.get("supabase");
 
     const { data: existingAuthUser, error: authCheckError } = await sb.auth.admin.listUsers();
@@ -56,17 +56,17 @@ authApp.post("/register", registerValidator, async (c) => {
         return c.json({ error: response.error?.message || "Failed to create user" }, 400);
     }
 
-    const user = response.data.user;
+    const authUser = response.data.user;
     const token = response.data.session?.access_token;
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = {
-        id: user.id,
-        email: user.email!,
+        id: authUser.id,
+        email: authUser.email!,
         name: name || "Default Name",
         password: hashedPassword,
-        is_admin: is_admin || false,
+        role: role || "user", 
     };
 
     const { error: insertError } = await userDb.createUser(sb, newUser);
@@ -75,7 +75,16 @@ authApp.post("/register", registerValidator, async (c) => {
         return c.json({ error: "Database error saving new user" }, 500);
     }
 
-    return c.json({ id: user.id, email: user.email, name: newUser.name, is_admin: newUser.is_admin, token }, 200);
+    return c.json(
+        {
+            id: authUser.id,
+            email: authUser.email,
+            name: newUser.name,
+            role: newUser.role,
+            token,
+        },
+        200
+    );
 });
 
 authApp.post("/refresh", async (c) => {
