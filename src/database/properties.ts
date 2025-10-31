@@ -7,15 +7,14 @@ export const getProperties = async (
     let query = sb.from('properties').select('*');
 
     if (options?.q) {
-        query = query.ilike('name', `%${options.q}%`); 
+        query = query.ilike('name', `%${options.q}%`);
     }
     if (options?.sort_by) {
         query = query.order(options.sort_by, { ascending: true });
     }
     if (options?.offset !== undefined && options?.limit !== undefined) {
         query = query.range(options.offset, options.offset + options.limit - 1);
-    }
-    if (options?.limit) {
+    } else if (options?.limit) {
         query = query.limit(options.limit);
     }
 

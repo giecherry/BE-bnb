@@ -4,7 +4,7 @@ import { createServerClient, parseCookieHeader } from "@supabase/ssr";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { HTTPException } from "hono/http-exception";
 
-import { supabaseUrl, supabaseAnonKey } from "../lib/supabase.js";
+import { supabaseUrl, supabaseAnonKey,supabaseServiceRoleKey } from "../lib/supabase.js";
 
 declare module "hono" {
   interface ContextVariableMap {
@@ -14,7 +14,7 @@ declare module "hono" {
 }
 
 function createSupabaseForRequest(c: Context) {
-  return createServerClient(supabaseUrl, supabaseAnonKey, {
+  return createServerClient(supabaseUrl, supabaseServiceRoleKey, {
     cookies: {
       getAll() {
         return parseCookieHeader(c.req.header("Cookie") ?? "").map(
