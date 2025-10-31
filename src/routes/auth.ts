@@ -1,13 +1,13 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { registerValidator } from "../validators/auth.js";
 import { requireAuth } from "../middleware/auth.js";
 import * as userDb from "../database/users.js";
 import bcrypt from "bcryptjs";
+import { loginValidator, userValidator } from "../validators/user.js";
 
 export const authApp = new Hono();
 
-authApp.post("/login", async (c) => {
+authApp.post("/login", loginValidator, async (c) => {
     try {
         const { email, password } = await c.req.json();
         const sb = c.get("supabase");
@@ -29,6 +29,7 @@ authApp.post("/login", async (c) => {
             email: authUser.email,
             name: user.name,
             role: user.role,
+            token: data.session?.access_token,
         };
 
         return new Response(JSON.stringify(response, null, 2), {
@@ -40,8 +41,8 @@ authApp.post("/login", async (c) => {
     }
 });
 
-authApp.post("/register", registerValidator, async (c) => {
-    const { email, password, name, role } = await c.req.json(); 
+authApp.post("/register", userValidator, async (c) => {
+    const { email, password, name, role } = await c.req.json();
     const sb = c.get("supabase");
 
     const { data: existingAuthUser, error: authCheckError } = await sb.auth.admin.listUsers();
@@ -66,7 +67,7 @@ authApp.post("/register", registerValidator, async (c) => {
         email: authUser.email!,
         name: name || "Default Name",
         password: hashedPassword,
-        role: role || "user", 
+        role: role || "user",
     };
 
     const { error: insertError } = await userDb.createUser(sb, newUser);
