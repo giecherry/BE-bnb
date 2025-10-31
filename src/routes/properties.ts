@@ -2,12 +2,12 @@ import { Hono } from 'hono';
 import { requireRole } from '../middleware/auth.js';
 import * as propertyDb from '../database/properties.js';
 import { handleError } from '../utils/general.js';
-import { SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 const propertiesApp = new Hono();
 
 propertiesApp.get('/', async (c) => {
-    const sb: SupabaseClient = c.get('supabase');
+    const sb = c.get('supabase');
     const { q, sort_by, offset, limit } = c.req.query();
 
     try {
@@ -24,8 +24,8 @@ propertiesApp.get('/', async (c) => {
 });
 
 propertiesApp.get('/:id', async (c) => {
-    const sb: SupabaseClient = c.get('supabase');
-    const id: string = c.req.param('id');
+    const sb = c.get('supabase');
+    const id = c.req.param('id');
 
     try {
         const property = await propertyDb.getPropertyById(sb, id);
@@ -39,7 +39,7 @@ propertiesApp.get('/:id', async (c) => {
 });
 
 propertiesApp.post('/', requireRole(['host','admin']), async (c) => {
-    const sb: SupabaseClient = c.get('supabase');
+    const sb = c.get('supabase');
     const body: NewProperty = await c.req.json();
 
     try {
@@ -51,8 +51,8 @@ propertiesApp.post('/', requireRole(['host','admin']), async (c) => {
 });
 
 propertiesApp.patch('/:id', requireRole(['host','admin']), async (c) => {
-    const sb: SupabaseClient = c.get('supabase');
-    const id: string = c.req.param('id');
+    const sb = c.get('supabase');
+    const id = c.req.param('id');
     const body: Partial<NewProperty> = await c.req.json();
     delete body.id; 
 
@@ -68,8 +68,8 @@ propertiesApp.patch('/:id', requireRole(['host','admin']), async (c) => {
 });
 
 propertiesApp.delete('/:id', requireRole(['host','admin']), async (c) => {
-    const sb: SupabaseClient = c.get('supabase');
-    const id: string = c.req.param('id');
+    const sb = c.get('supabase');
+    const id = c.req.param('id');
 
     try {
         const deleted = await propertyDb.deleteProperty(sb, id);
