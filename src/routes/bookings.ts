@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { requireAuth, optionalAuth, requireRole } from '../middleware/auth.js';
+import { requireAuth, requireRole } from '../middleware/auth.js';
 import * as bookingDb from '../database/bookings.js';
 import { handleError } from '../utils/general.js';
 
