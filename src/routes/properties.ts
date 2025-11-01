@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { requireRole } from '../middleware/auth.js';
 import * as propertyDb from '../database/properties.js';
 import { handleError } from '../utils/general.js';
-import { propertyValidator } from '../validators/property.js';
+import { propertyValidator, partialPropertyValidator } from '../validators/property.js';
 
 const propertiesApp = new Hono();
 
@@ -40,14 +40,14 @@ propertiesApp.get('/:id', async (c) => {
 
 propertiesApp.post('/', propertyValidator, requireRole(['host', 'admin']), async (c) => {
     const sb = c.get('supabase');
-    const user = c.get('user'); 
+    const user = c.get('user');
 
     if (!user) {
-        console.error('User is null in POST /properties');
+        console.error('Unauthorized: User is null');
         return c.json({ error: 'Unauthorized: User not found' }, 401);
     }
 
-    const body: NewProperty = await c.req.json(); 
+    const body: NewProperty = await c.req.json();
 
     try {
         const propertyData = {
@@ -69,13 +69,33 @@ propertiesApp.post('/', propertyValidator, requireRole(['host', 'admin']), async
     }
 });
 
-propertiesApp.patch('/:id', requireRole(['host', 'admin']), async (c) => {
+propertiesApp.patch('/:id', partialPropertyValidator, requireRole(['host', 'admin']), async (c) => {
     const sb = c.get('supabase');
     const id = c.req.param('id');
     const body: Partial<NewProperty> = await c.req.json();
     delete body.id;
+    const user = c.get('user');
 
     try {
+        const { data: property, error } = await sb
+            .from('properties')
+            .select('user_id')
+            .eq('id', id)
+            .single();
+
+        if (error || !property) {
+            console.error('Property not found or error fetching property:', error);
+            return c.json({ error: 'Property not found' }, 404);
+        }
+        if (!user) {
+            console.error('Unauthorized: User is null');
+            return c.json({ error: 'Unauthorized: User not found' }, 401);
+        }
+        if (property.user_id !== user.id && user.role !== 'admin') {
+            console.warn('Unauthorized: User is not the owner or an admin');
+            return c.json({ error: 'Unauthorized: You do not have permission to update this property' }, 403);
+        }
+
         const updatedProperty = await propertyDb.updateProperty(sb, id, body as NewProperty);
         if (!updatedProperty) {
             return c.json({ error: 'Property not found' }, 404);

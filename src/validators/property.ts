@@ -15,3 +15,11 @@ export const propertyValidator = zValidator("json", propertySchema, (result, c) 
         return c.json({ errors: result.error.issues }, 400);
     }
 });
+
+const partialPropertySchema = propertySchema.partial();
+
+export const partialPropertyValidator = zValidator("json", partialPropertySchema, (result, c) => {
+    if (!result.success) {
+        return c.json({ errors: result.error.issues }, 400);
+    }
+});
