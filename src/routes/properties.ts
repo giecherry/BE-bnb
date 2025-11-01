@@ -55,8 +55,6 @@ propertiesApp.post('/', propertyValidator, requireRole(['host', 'admin']), async
             user_id: user.id,
         };
 
-        console.log('Property Data:', propertyData);
-
         const newProperty = await propertyDb.createProperty(sb, propertyData);
 
         if (newProperty.error) {

@@ -4,7 +4,7 @@ import { createServerClient, parseCookieHeader } from "@supabase/ssr";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { HTTPException } from "hono/http-exception";
 
-import { supabaseUrl, supabaseAnonKey,supabaseServiceRoleKey } from "../lib/supabase.js";
+import { supabaseUrl, supabaseAnonKey, supabaseServiceRoleKey } from "../lib/supabase.js";
 
 declare module "hono" {
   interface ContextVariableMap {
@@ -41,24 +41,32 @@ async function withSupabase(c: Context, next: Next) {
     const sb = createSupabaseForRequest(c);
     c.set("supabase", sb);
 
-    const {
-      data: { user },
-      error,
-    } = await sb.auth.getUser();
+    const authHeader = c.req.header("Authorization");
 
-    // If Error is JWT expired, attempt to refresh the session
-    if (error && error.code === "session_expired") {
-        console.log("session has expired attempting refreshing the session")
-      const { data: refreshData, error: refreshError } =
-        await sb.auth.refreshSession();
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      c.set("user", null);
+      return next();
+    }
 
-      if (!refreshError && refreshData.user) {
-        c.set("user", refreshData.user);
+    const token = authHeader.split(" ")[1];
+
+    const { data, error } = await sb.auth.getUser(token);
+    if (error) {
+      console.error("Failed to decode token:", error);
+
+      if (error.code === "session_expired") {
+        const { data: refreshData, error: refreshError } = await sb.auth.refreshSession();
+
+        if (!refreshError && refreshData.user) {
+          c.set("user", refreshData.user);
+        } else {
+          c.set("user", null);
+        }
       } else {
         c.set("user", null);
       }
     } else {
-      c.set("user", error ? null : user);
+      c.set("user", data.user);
     }
   }
   return next();
@@ -69,7 +77,7 @@ export async function optionalAuth(c: Context, next: Next) {
 }
 
 export async function requireAuth(c: Context, next: Next) {
-  await withSupabase(c, async () => {});
+  await withSupabase(c, async () => { });
   const user = c.get("user");
   if (!user) {
     throw new HTTPException(401, { message: "Unauthorized" });
@@ -80,7 +88,7 @@ export async function requireAuth(c: Context, next: Next) {
 
 export const requireRole = (allowedRoles: string[]) => {
   return async (c: Context, next: Next) => {
-    await withSupabase(c, async () => {});
+    await withSupabase(c, async () => { });
     const user = c.get("user");
     if (!user) {
       throw new HTTPException(401, { message: "Unauthorized" });
