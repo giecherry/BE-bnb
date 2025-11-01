@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { requireRole } from '../middleware/auth.js';
 import * as propertyDb from '../database/properties.js';
 import { handleError } from '../utils/general.js';
+import { propertyValidator } from '../validators/property.js';
 
 const propertiesApp = new Hono();
 
@@ -37,14 +38,35 @@ propertiesApp.get('/:id', async (c) => {
     }
 });
 
-propertiesApp.post('/', requireRole(['host', 'admin']), async (c) => {
+propertiesApp.post('/', propertyValidator, requireRole(['host', 'admin']), async (c) => {
     const sb = c.get('supabase');
-    const body: NewProperty = await c.req.json();
-    
+    const user = c.get('user'); 
+
+    if (!user) {
+        console.error('User is null in POST /properties');
+        return c.json({ error: 'Unauthorized: User not found' }, 401);
+    }
+
+    const body: NewProperty = await c.req.json(); 
+
     try {
-        const newProperty = await propertyDb.createProperty(sb, body);
-        return c.json(newProperty, 201);
+        const propertyData = {
+            ...body,
+            user_id: user.id,
+        };
+
+        console.log('Property Data:', propertyData);
+
+        const newProperty = await propertyDb.createProperty(sb, propertyData);
+
+        if (newProperty.error) {
+            console.error('Error inserting property:', newProperty.error);
+            return c.json({ error: newProperty.error }, 400);
+        }
+
+        return c.json(newProperty.data, 201);
     } catch (error) {
+        console.error('Error in POST /properties:', error);
         return handleError(error, 'Failed to create property', c);
     }
 });
