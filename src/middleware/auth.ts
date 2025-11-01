@@ -90,6 +90,7 @@ export const requireRole = (allowedRoles: string[]) => {
   return async (c: Context, next: Next) => {
     await withSupabase(c, async () => { });
     const user = c.get("user");
+
     if (!user) {
       throw new HTTPException(401, { message: "Unauthorized" });
     }
@@ -101,7 +102,18 @@ export const requireRole = (allowedRoles: string[]) => {
       .eq("id", user.id)
       .single();
 
-    if (error || !allowedRoles.includes(userData?.role)) {
+    if (error || !userData) {
+      console.error("Error fetching user role:", error);
+      throw new HTTPException(500, { message: "Failed to fetch user role" });
+    }
+
+    user.role = userData.role;
+
+    if (!user.role) {
+      throw new HTTPException(403, { message: "Unauthorized access: Role not found" });
+    }
+
+    if (!allowedRoles.includes(user.role)) {
       throw new HTTPException(403, { message: "Unauthorized access" });
     }
 

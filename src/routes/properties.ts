@@ -82,7 +82,7 @@ propertiesApp.patch('/:id', partialPropertyValidator, requireRole(['host', 'admi
             .select('user_id')
             .eq('id', id)
             .single();
-
+        
         if (error || !property) {
             console.error('Property not found or error fetching property:', error);
             return c.json({ error: 'Property not found' }, 404);
@@ -109,8 +109,30 @@ propertiesApp.patch('/:id', partialPropertyValidator, requireRole(['host', 'admi
 propertiesApp.delete('/:id', requireRole(['host', 'admin']), async (c) => {
     const sb = c.get('supabase');
     const id = c.req.param('id');
+    const user = c.get('user'); 
+
+    if (!user) {
+        console.error('Unauthorized: User is null');
+        return c.json({ error: 'Unauthorized: User not found' }, 401);
+    }
 
     try {
+        const { data: property, error: propertyError } = await sb
+            .from('properties')
+            .select('user_id')
+            .eq('id', id)
+            .single();
+
+        if (propertyError || !property) {
+            console.error('Property not found or error fetching property:', propertyError);
+            return c.json({ error: 'Property not found' }, 404);
+        }
+
+        if (property.user_id !== user.id && user.role !== 'admin') {
+            console.warn('Unauthorized: User is not the owner or an admin');
+            return c.json({ error: 'Unauthorized: You do not have permission to delete this property' }, 403);
+        }
+
         const deleted = await propertyDb.deleteProperty(sb, id);
         if (!deleted) {
             return c.json({ error: 'Property not found' }, 404);
