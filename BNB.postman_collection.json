@@ -13,7 +13,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"email\": \"muchi5@example.com\",\n    \"password\": \"muchi1004\",\n    \"name\": \"Muchi\",\n    \"role\": \"user\"\n}",
+					"raw": "{\n    \"email\": \"test@example.com\",\n    \"password\": \"password\",\n    \"name\": \"test\",\n    \"role\": \"user\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -40,11 +40,11 @@
 					"listen": "test",
 					"script": {
 						"exec": [
-							"//Muchi 1 Admin",
-							"//Muchi 2 User",
-							"//Muchi 3 Host",
-							"//Muchi 4 Host",
-							"//Muchi 5 User",
+							"//Test 1 Admin",
+							"//Test 2 User",
+							"//Test 3 Host",
+							"//Test 4 Host",
+							"//Test 5 User",
 							"",
 							"const jsonResponse = pm.response.json();",
 							"",
@@ -78,7 +78,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"email\": \"muchi5@example.com\",\n    \"password\": \"muchi1004\"\n}",
+					"raw": "{\n    \"email\": \"test@example.com\",\n    \"password\": \"password\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
