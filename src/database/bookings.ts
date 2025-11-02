@@ -29,38 +29,38 @@ export const getBookingById = async (sb: SupabaseClient, id: string) => {
 };
 
 export const getUserBookings = async (sb: SupabaseClient, userId: string) => {
-    const query = sb.from("bookings").select("*").eq("userId", userId);
+    const query = sb.from("bookings").select("*").eq("user_id", userId);
     const bookings: PostgrestSingleResponse<Booking[]> = await query;
     return bookings.data || [];
 };
 
 export const createBooking = async (
     sb: SupabaseClient,
-    booking: Omit<NewBooking, 'id' | 'createdAt'>
-): Promise<Booking> => {
-    const property = await sb.from('properties').select('price_per_night').eq('id', booking.propertyId).single();
-    if (!property.data) {
-        throw new Error('Property not found');
+    booking: Omit<NewBooking, 'id' | 'created_at'>
+): Promise<NewBooking> => {
+    if (!booking.user_id || !booking.property_id || !booking.check_in_date || !booking.check_out_date || !booking.total_price) {
+        throw new Error('Missing required fields for booking creation');
     }
-    const pricePerNight = property.data.price_per_night;
-    const checkIn = new Date(booking.checkInDate);
-    const checkOut = new Date(booking.checkOutDate);
-    const stayLength = (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24);
-    const totalPrice = pricePerNight * stayLength;
+
+    const checkIn = new Date(booking.check_in_date);
+    const checkOut = new Date(booking.check_out_date);
+    if (checkOut <= checkIn) {
+        throw new Error('Check-out date must be after check-in date');
+    }
 
     const query = sb
         .from('bookings')
         .insert({
-            user_id: booking.userId,
-            property_id: booking.propertyId,
-            check_in_date: booking.checkInDate,
-            check_out_date: booking.checkOutDate,
-            total_price: totalPrice,
+            user_id: booking.user_id,
+            property_id: booking.property_id,
+            check_in_date: booking.check_in_date,
+            check_out_date: booking.check_out_date,
+            total_price: booking.total_price,
         })
         .select()
         .single();
 
-    const response: PostgrestSingleResponse<Booking> = await query;
+    const response: PostgrestSingleResponse<NewBooking> = await query;
 
     if (response.error) {
         throw new Error(response.error.message);
@@ -72,15 +72,22 @@ export const createBooking = async (
 export const updateBooking = async (
     sb: SupabaseClient,
     id: string,
-    booking: NewBooking) => {
+    booking: Partial<NewBooking>
+): Promise<Booking | null> => {
     const query = sb
         .from("bookings")
         .update(booking)
         .eq("id", id)
         .select()
         .single();
+
     const response: PostgrestSingleResponse<Booking> = await query;
-    return response;
+
+    if (response.error) {
+        throw new Error(response.error.message);
+    }
+
+    return response.data || null;
 };
 
 export const deleteBooking = async (sb: SupabaseClient, id: string) => {

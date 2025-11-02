@@ -23,6 +23,7 @@ propertiesApp.get('/', async (c) => {
     }
 });
 
+//TODO - Get property's bookings
 propertiesApp.get('/:id', async (c) => {
     const sb = c.get('supabase');
     const id = c.req.param('id');

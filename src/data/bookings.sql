@@ -1,5 +1,5 @@
 CREATE TABLE bookings (
-  id UUID PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at TIMESTAMP DEFAULT NOW(),
   check_in_date DATE NOT NULL,
   check_out_date DATE NOT NULL,
