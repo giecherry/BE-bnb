@@ -5,6 +5,7 @@ interface NewProperty {
     location: string;
     price_per_night: number;
     availability: boolean;
+    images: string[];
 }
 
 interface Property extends NewProperty {

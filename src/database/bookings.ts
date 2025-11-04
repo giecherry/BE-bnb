@@ -3,7 +3,7 @@ import type { PostgrestSingleResponse, SupabaseClient } from "@supabase/supabase
 export const getBookings = async (
     sb: SupabaseClient, options?: { q?: string; sort_by?: string; offset?: number; limit?: number }
 ) => {
-    let query = sb.from("bookings").select("*");
+    let query = sb.from("bookings").select("*, user:user_id(*), property:property_id(*)");
 
     if (options?.q) {
         query = query.ilike("name", `%${options.q}%`);
@@ -23,13 +23,22 @@ export const getBookings = async (
 };
 
 export const getBookingById = async (sb: SupabaseClient, id: string) => {
-    const query = sb.from("bookings").select("*").eq("id", id).single();
+    const query = sb
+        .from("bookings")
+        .select("*, user:user_id(*), property:property_id(*)")
+        .eq("id", id)
+        .single();
+
     const booking: PostgrestSingleResponse<Booking> = await query;
     return booking.data || null;
 };
 
 export const getUserBookings = async (sb: SupabaseClient, userId: string) => {
-    const query = sb.from("bookings").select("*").eq("user_id", userId);
+    const query = sb
+        .from("bookings")
+        .select("*, user:user_id(*), property:property_id(*)")
+        .eq("user_id", userId);
+
     const bookings: PostgrestSingleResponse<Booking[]> = await query;
     return bookings.data || [];
 };

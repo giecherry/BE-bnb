@@ -15,7 +15,7 @@ propertiesApp.get('/', async (c) => {
             q,
             sort_by,
             offset: offset ? Number(offset) : 0,
-            limit: limit ? Number(limit) : 10,
+            limit: limit ? Number(limit) : 30,
         });
         return c.json(properties);
     } catch (error) {

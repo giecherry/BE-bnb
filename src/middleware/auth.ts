@@ -55,15 +55,20 @@ async function withSupabase(c: Context, next: Next) {
       console.error("Failed to decode token:", error);
 
       if (error.code === "session_expired") {
+        c.header("X-Auth-Error", "Token expired");
+
         const { data: refreshData, error: refreshError } = await sb.auth.refreshSession();
 
         if (!refreshError && refreshData.user) {
           c.set("user", refreshData.user);
         } else {
           c.set("user", null);
+          return c.json({ error: "Token expired" }, 401);
         }
       } else {
+        c.header("X-Auth-Error", "Invalid token");
         c.set("user", null);
+        return c.json({ error: "Invalid token" }, 401); 
       }
     } else {
       c.set("user", data.user);
