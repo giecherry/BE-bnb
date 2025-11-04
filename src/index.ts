@@ -6,10 +6,21 @@ import { optionalAuth } from "./middleware/auth.js";
 import { authApp } from "./routes/auth.js";
 import bookingsApp from "./routes/bookings.js";
 import propertiesApp from "./routes/properties.js";
+import { cors } from 'hono/cors';
 
 dotenv.config();
 
 const app = new Hono();
+
+app.use(
+    "*",
+    cors({
+        origin: ["http://localhost:3000"],
+        allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+        allowHeaders: ["Content-Type", "Authorization"],
+        credentials: true,
+    })
+);
 
 app.get('/', (c) => {
     const documentation = `

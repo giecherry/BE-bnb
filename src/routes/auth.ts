@@ -24,17 +24,22 @@ authApp.post("/login", loginValidator, async (c) => {
             return c.json({ error: "User not found" }, 404);
         }
 
+        const token = data.session?.access_token;
+
+        c.header(
+            "Set-Cookie",
+            `session=${token}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${60 * 60 * 24 * 7}`
+        );
+
         const response = {
             id: authUser.id,
             email: authUser.email,
             name: user.name,
             role: user.role,
-            token: data.session?.access_token,
+            token,
         };
 
-        return new Response(JSON.stringify(response, null, 2), {
-            headers: { "Content-Type": "application/json" },
-        });
+        return c.json(response);
     } catch (err) {
         console.error("Unexpected error:", err);
         return c.json({ error: "Internal server error" }, 500);
@@ -75,6 +80,11 @@ authApp.post("/register", userValidator, async (c) => {
         console.error("Error inserting user into users table:", insertError.message);
         return c.json({ error: "Database error saving new user" }, 500);
     }
+
+    c.header(
+        "Set-Cookie",
+        `session=${token}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${60 * 60 * 24 * 7}`
+    );
 
     return c.json(
         {
