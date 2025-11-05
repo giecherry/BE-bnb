@@ -18,7 +18,7 @@ if (!process.env.FRONTEND_URL) {
 app.use(
     "*",
     cors({
-        origin: process.env.FRONTEND_URL,
+        origin: process.env.FRONTEND_URL || "http://localhost:3000",
         allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
         allowHeaders: ["Content-Type", "Authorization"],
         credentials: true,
