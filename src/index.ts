@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { serve } from "@hono/node-server";
 import dotenv from "dotenv";
 import { HTTPException } from "hono/http-exception";
+import { optionalAuth } from "./middleware/auth.js";
 import { authApp } from "./routes/auth.js";
 import bookingsApp from "./routes/bookings.js";
 import propertiesApp from "./routes/properties.js";
@@ -11,22 +12,11 @@ dotenv.config();
 
 const app = new Hono();
 
-if (!process.env.FRONTEND_URL) {
-    throw new Error("FRONTEND_URL environment variable is not set.");
-}
+app.use("*", optionalAuth);
 app.use(
     "*",
     cors({
-        origin: (origin) => {
-            const allowedOrigins = [
-                process.env.FRONTEND_URL,
-                "http://localhost:3000",
-            ];
-            if (allowedOrigins.includes(origin)) {
-                return origin;
-            }
-            return null;
-        },
+        origin: ["http://localhost:3000"],
         allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
         allowHeaders: ["Content-Type", "Authorization"],
         credentials: true,
