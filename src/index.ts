@@ -13,14 +13,22 @@ dotenv.config();
 const app = new Hono();
 
 app.use("*", optionalAuth);
-app.use(
-    "*",
-    cors({
-        origin: ["http://localhost:3000"],
-        allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-        allowHeaders: ["Content-Type", "Authorization"],
-        credentials: true,
-    })
+app.use("*",
+        cors({
+            origin: (origin) => {
+                const allowedOrigins = [
+                    process.env.FRONTEND_URL,
+                    "http://localhost:3000",
+                ];
+                if (allowedOrigins.includes(origin)) {
+                    return origin;
+                }
+                return null;
+            },
+            allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+            allowHeaders: ["Content-Type", "Authorization"],
+            credentials: true,
+        })
 );
 
 app.get('/', (c) => {
