@@ -13,7 +13,16 @@ if (!process.env.FRONTEND_URL) {
     throw new Error("FRONTEND_URL environment variable is not set.");
 }
 app.use("*", cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: (origin) => {
+        const allowedOrigins = [
+            process.env.FRONTEND_URL,
+            "http://localhost:3000",
+        ];
+        if (allowedOrigins.includes(origin)) {
+            return origin;
+        }
+        return null;
+    },
     allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
     credentials: true,
