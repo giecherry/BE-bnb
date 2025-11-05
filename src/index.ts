@@ -2,7 +2,6 @@ import { Hono } from 'hono';
 import { serve } from "@hono/node-server";
 import dotenv from "dotenv";
 import { HTTPException } from "hono/http-exception";
-import { optionalAuth } from "./middleware/auth.js";
 import { authApp } from "./routes/auth.js";
 import bookingsApp from "./routes/bookings.js";
 import propertiesApp from "./routes/properties.js";
@@ -65,7 +64,7 @@ app.get('/', (c) => {
     `;
     return c.text(documentation, 200);
 });
-app.use("*", optionalAuth);
+
 app.route("/auth", authApp);
 app.route("/bookings", bookingsApp);
 app.route("/properties", propertiesApp);

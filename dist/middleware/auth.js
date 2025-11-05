@@ -58,9 +58,6 @@ async function withSupabase(c, next) {
     }
     return next();
 }
-export async function optionalAuth(c, next) {
-    return withSupabase(c, next);
-}
 export async function requireAuth(c, next) {
     await withSupabase(c, async () => { });
     const user = c.get("user");

@@ -77,9 +77,6 @@ async function withSupabase(c: Context, next: Next) {
   return next();
 }
 
-export async function optionalAuth(c: Context, next: Next) {
-  return withSupabase(c, next);
-}
 
 export async function requireAuth(c: Context, next: Next) {
   await withSupabase(c, async () => { });
