@@ -1,11 +1,11 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { registerValidator } from "../validators/auth.js";
 import { requireAuth } from "../middleware/auth.js";
 import * as userDb from "../database/users.js";
 import bcrypt from "bcryptjs";
+import { loginValidator, userValidator } from "../validators/user.js";
 export const authApp = new Hono();
-authApp.post("/login", async (c) => {
+authApp.post("/login", loginValidator, async (c) => {
     try {
         const { email, password } = await c.req.json();
         const sb = c.get("supabase");
@@ -18,22 +18,23 @@ authApp.post("/login", async (c) => {
         if (!user) {
             return c.json({ error: "User not found" }, 404);
         }
+        const token = data.session?.access_token;
+        c.header("Set-Cookie", `session=${token}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${60 * 60 * 24 * 7}`);
         const response = {
             id: authUser.id,
             email: authUser.email,
             name: user.name,
             role: user.role,
+            token,
         };
-        return new Response(JSON.stringify(response, null, 2), {
-            headers: { "Content-Type": "application/json" },
-        });
+        return c.json(response);
     }
     catch (err) {
         console.error("Unexpected error:", err);
         return c.json({ error: "Internal server error" }, 500);
     }
 });
-authApp.post("/register", registerValidator, async (c) => {
+authApp.post("/register", userValidator, async (c) => {
     const { email, password, name, role } = await c.req.json();
     const sb = c.get("supabase");
     const { data: existingAuthUser, error: authCheckError } = await sb.auth.admin.listUsers();
@@ -60,6 +61,7 @@ authApp.post("/register", registerValidator, async (c) => {
         console.error("Error inserting user into users table:", insertError.message);
         return c.json({ error: "Database error saving new user" }, 500);
     }
+    c.header("Set-Cookie", `session=${token}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${60 * 60 * 24 * 7}`);
     return c.json({
         id: authUser.id,
         email: authUser.email,

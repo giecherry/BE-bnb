@@ -9,7 +9,7 @@ export const getProperties = async (sb, options) => {
     if (options?.offset !== undefined && options?.limit !== undefined) {
         query = query.range(options.offset, options.offset + options.limit - 1);
     }
-    if (options?.limit) {
+    else if (options?.limit) {
         query = query.limit(options.limit);
     }
     const properties = await query;

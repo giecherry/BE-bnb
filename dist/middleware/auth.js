@@ -1,9 +1,9 @@
 import { setCookie } from "hono/cookie";
 import { createServerClient, parseCookieHeader } from "@supabase/ssr";
 import { HTTPException } from "hono/http-exception";
-import { supabaseUrl, supabaseAnonKey } from "../lib/supabase.js";
+import { supabaseUrl, supabaseAnonKey, supabaseServiceRoleKey } from "../lib/supabase.js";
 function createSupabaseForRequest(c) {
-    return createServerClient(supabaseUrl, supabaseAnonKey, {
+    return createServerClient(supabaseUrl, supabaseServiceRoleKey, {
         cookies: {
             getAll() {
                 return parseCookieHeader(c.req.header("Cookie") ?? "").map(({ name, value }) => ({ name, value: value ?? "" }));
@@ -26,20 +26,34 @@ async function withSupabase(c, next) {
     if (!c.get("supabase")) {
         const sb = createSupabaseForRequest(c);
         c.set("supabase", sb);
-        const { data: { user }, error, } = await sb.auth.getUser();
-        // If Error is JWT expired, attempt to refresh the session
-        if (error && error.code === "session_expired") {
-            console.log("session has expired attempting refreshing the session");
-            const { data: refreshData, error: refreshError } = await sb.auth.refreshSession();
-            if (!refreshError && refreshData.user) {
-                c.set("user", refreshData.user);
+        const authHeader = c.req.header("Authorization");
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            c.set("user", null);
+            return next();
+        }
+        const token = authHeader.split(" ")[1];
+        const { data, error } = await sb.auth.getUser(token);
+        if (error) {
+            console.error("Failed to decode token:", error);
+            if (error.code === "session_expired") {
+                c.header("X-Auth-Error", "Token expired");
+                const { data: refreshData, error: refreshError } = await sb.auth.refreshSession();
+                if (!refreshError && refreshData.user) {
+                    c.set("user", refreshData.user);
+                }
+                else {
+                    c.set("user", null);
+                    return c.json({ error: "Token expired" }, 401);
+                }
             }
             else {
+                c.header("X-Auth-Error", "Invalid token");
                 c.set("user", null);
+                return c.json({ error: "Invalid token" }, 401);
             }
         }
         else {
-            c.set("user", error ? null : user);
+            c.set("user", data.user);
         }
     }
     return next();
@@ -68,7 +82,15 @@ export const requireRole = (allowedRoles) => {
             .select("role")
             .eq("id", user.id)
             .single();
-        if (error || !allowedRoles.includes(userData?.role)) {
+        if (error || !userData) {
+            console.error("Error fetching user role:", error);
+            throw new HTTPException(500, { message: "Failed to fetch user role" });
+        }
+        user.role = userData.role;
+        if (!user.role) {
+            throw new HTTPException(403, { message: "Unauthorized access: Role not found" });
+        }
+        if (!allowedRoles.includes(user.role)) {
             throw new HTTPException(403, { message: "Unauthorized access" });
         }
         return next();
