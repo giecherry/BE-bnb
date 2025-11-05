@@ -65,7 +65,7 @@ app.get('/', (c) => {
     `;
     return c.text(documentation, 200);
 });
-
+app.use("*", optionalAuth);
 app.route("/auth", authApp);
 app.route("/bookings", bookingsApp);
 app.route("/properties", propertiesApp);
